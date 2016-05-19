@@ -1,0 +1,2 @@
+def convert_ts(timestamp):
+    day, t = timestamp.split(' ')
