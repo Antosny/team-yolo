@@ -35,7 +35,7 @@ if __name__ == '__main__':
         dtinfo = dt.split('-')
         for p in place.keys():
             totalnum = 0
-            weight = [0.5, 0.3, 0.2]
+            weight = [0.33, 0.33, 0.33]
             for i in range(1, 4):
                 newdt = int(dtinfo[-1]) - i
                 newdt = '-'.join(dtinfo[0:-1]) + '-' + str(newdt)
@@ -43,6 +43,6 @@ if __name__ == '__main__':
                 if newdt in place[p]:
                     skipnum = place[p][newdt][1]
                 totalnum += weight[i-1] * skipnum
-            w.write(idxdict[p] + ',' + dt + ',' + str(totalnum) + '\n')
+            w.write(idxdict[p] + ',' + dt + ',' + str(1.0) + '\n')
     w.close()
         #print dt
