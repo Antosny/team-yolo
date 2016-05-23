@@ -66,7 +66,7 @@ if __name__ == '__main__':
             truep = 0
             prep = 1
             if prev in place[p]:
-                prep = (place[p][prev][1]) / 2.0
+                prep = (place[p][prev][1]) * 0.91
                 #if prep > 10:
                 #    prep = prep * 2
             if prep < 1:
@@ -74,8 +74,8 @@ if __name__ == '__main__':
             if v not in place[p]:
                 continue
             testdict[p].append((v, place[p][v][1], prep))
-            if place[p][v][1] > 0 and abs((prep - place[p][v][1]) / (place[p][v][1] + 0.0)) > 0.5 and prev in place[p]:
-                print p + ' ' + str(place[p][v][1]) + ' ' + str(prep) + ' ' + str(place[p][prev][1])
+            #if place[p][v][1] > 0 and abs((prep - place[p][v][1]) / (place[p][v][1] + 0.0)) > 0.5 and prev in place[p]:
+            #    print p + ' ' + str(place[p][v][1]) + ' ' + str(prep) + ' ' + str(place[p][prev][1])
     print mape(testdict)
             
 #     test_date = open(sys.argv[3]).read().split('\n')[1:-1]

@@ -8,6 +8,12 @@ def convert_ts(timestamp):
     result = day + '-' + str(int(h) * 6 + int(m) / 10 + 1)
     return result
 
+def ts_idx(ts):
+    tinfo = ts.split('-')
+    return int(tinfo[2]) * 144 + int(tinfo[3])
+
+    
+
 def answer(x):
     if x is np.nan:
         return 0
@@ -25,7 +31,12 @@ def order_to_ts(fromfile, tofile):
     suma = agroup.sum()
     suma['gap'] = suma['call'] - suma['answer']
     suma = suma.drop('price', 1)
+    #suma['tsidx'] = suma['ts'].apply(ts_idx)
     suma.to_csv(tofile)
+    suma = pd.read_csv(tofile)
+    suma['tsidx'] = suma['ts'].apply(ts_idx)
+    suma.to_csv(tofile, index=False)
+    return suma
 
 def add_header(dirpath, topath):
     order = ['order_id', 'driver_id', 'passenger_id', 'start_district_hash', 'dest_district_hash', 'price', 'time']
