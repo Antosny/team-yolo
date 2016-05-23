@@ -1,8 +1,298 @@
 # coding: utf-8
 import pandas as pd
 import numpy as np
-tr_order = pd.read_csv('order_data/order.all')
-tr_order
-tr_order['time']
+import os
+order
+order = ''
+f = os.listdir('../train_data/order_data/')
+f
+for d in f:
+    if order == '':
+        order = pd.read_csv('../train_data/order_data/' + f)
+    else:
+        neworder = pd.read_csv('../train_data/order_data/' + f)
+        order = order.concat(neworder)
+        
+orderlist = []
+get_ipython().magic(u'edit 8')
+get_ipython().magic(u'edit 8')
+get_ipython().magic(u'edit 11')
+orderlist
+len(orderlist)
+orderall = pd.concat(orderlist)
+orderlist = []
+orderall
 import util
-get_ipython().magic(u'save a.py 1-7')
+orderall['ts'] = util.convert_ts(orderall['time'])
+orderall['time']
+util.convert_ts(orderall['time'])
+orderall['time'].apply
+orderall['time'].apply(util.convert_ts)
+orderall['ts'] = orderall['time'].apply(util.convert_ts)
+orderall['ts']
+orderall
+orderall.groupby('ts')
+ordergroup = orderall.groupby('ts')
+ordergroup
+ordergroup.first()
+ordergroup.groups
+order
+orderall
+orderall.groupby(['start_district_hash', 'ts'])
+ordergroup = orderall.groupby(['start_district_hash', 'ts'])
+ordergroup
+ordergroup.first()
+ordergroup.sum()
+ordergroup
+ordergroup.get_group
+ordergroup.get_group()
+ordergroup.groups()
+ordergroup.index
+ordergroup.apply
+order = pd.read_csv('../train_data/order_data/order_data_2016-01-12')
+order['ts'] = order['time'].apply(util.convert_ts)
+order['time']
+order['time'] = ''
+order
+order = order.drop('time', 1)
+order
+ordergroup = order.groupby(['start_district_hash', 'ts'])
+ordergroup
+ordergroup.all
+ordergroup.all()
+ordergroup.first
+ordergroup.first()
+ordergroup['price']
+ordergroup.sum()
+ordergroup['start_district_hash']
+ordergroup['start_district_hash'].first()
+ordergroup['price'].apply(lambda x:x.describe())
+ordergroup.apply(lambda x:x)
+order
+order['call'] = order['passenger_id'].apply(lambda x:1)
+order['call']
+order['answer'] = order['driver_id'].apply(lambda x:x != 'NULL')
+order['answer']
+def answer(f):
+    if f == 'NULL':
+        return 0
+    return 1
+order['answer'] = order['driver_id'].apply(answer)
+order['answer']
+order['answer'].min
+min(order['answer'])
+order['driver_id']
+def answer(f):
+    if f == None:
+        return 0
+    return 1
+order['answer'] = order['driver_id'].apply(answer)
+min(order['answer'])
+def answer(f):
+    if f == 'NaN':
+        return 0
+    return 1
+order['answer'] = order['driver_id'].apply(answer)
+min(order['answer'])
+min(order['driver_id'])
+def answer(f):
+    if f == np.nan:
+        return 0
+    return 1
+order['answer'] = order['driver_id'].apply(answer)
+min(order['driver_id'])
+min(order['answer'])
+order[379178]
+order.iloc
+order.iloc[379178]
+order.iloc[379178]['driver_id']
+order.iloc[379178]['driver_id'] == np.nan
+order.iloc[379178]['driver_id'] is np.nan
+def answer(f):
+    if f is np.nan:
+        return 0
+    return 1
+order['answer'] = order['driver_id'].apply(answer)
+min(order['answer'])
+order
+order.drop['driver_id', 1]
+order.drop('driver_id', 1)
+order.drop('passenger_id', 1)
+order.drop('driver_id', 1)
+order
+order = order.drop('driver_id', 1)
+order
+order = order.drop('passenger_id', 1)
+order
+ordergroup = order.groupby(['start_district_hash', 'ts'])
+ordergroup
+ordergroup['s'] = ordergroup['answer'].apply(np.sum)
+ordergroup['answer'].apply(np.sum)
+ordergroup['call'].apply(np.sum)
+ordergroup.sum()
+dd = ordergroup.sum()
+dd
+dd['gap'] = dd['call'] - dd['answer']
+dd
+dd
+dd['call
+dd['call', 'answer', 'gap']
+dd(['call', 'answer', 'gap'])
+dd
+poi = pd.read_csv('../train_data/poi_data/poi_data')
+poi
+pd.merge
+pd.merge(dd, poi, left_index='start_district_hash', right_index='district_hash')
+dd
+dd.merge(poi)
+pd.merge(dd, poi, left_index='start_district_hash', right_index='district_hash')
+poi
+pd.merge(dd, poi, left_index='start_district_hash', right_index='district_hash', how='inner')
+dd
+dd['ts']
+dd.reindex
+dd.reset_index
+dd.reset_index(level=1)
+dd.reset_index(level=1)['ts']
+dd.reset_index(level=1)['start_district_hash']
+dd.reset_index(level=0)
+dd.reset_index(level=2)
+dd.reset_index(level=1)
+dd.reset_index(level=1).join(poi)
+dd.reset_index(level=1).join(poi, index = 'district_hash')
+poi.index = poi['district_hash']
+poi
+dd.reset_index(level=1).join(poi)
+weather = pd.read_csv('../train_data/weather_data/weather_data_2016-01-01')
+weather
+weather['ts'] = weather['time'].apply(util.convert_ts)
+weather
+weather = weather.drop('time', 1)
+weather
+weather.index = ts
+weather.index = weather['ts']
+weather
+weather.index
+dd
+dd.reset_index(level=1).join(poi)
+ddd = dd.reset_index(level=1).join(poi)
+ddd.index
+ddd.index = ddd['ts']
+ddd
+ddd.join(weather)
+weather
+ddd
+weather = pd.read_csv('../train_data/weather_data/weather_data_2016-01-12')
+weather['ts'] = weather['time'].apply(util.convert_ts)
+weather = weather.drop('time', 1)
+ddd.join(weather)
+weather
+weather.index = weather['ts']
+ddd.join(weather)
+ddd
+ddd.index
+weather.index
+ddd.join(weather, how='outer')
+ddd
+pd.merge(ddd, weather, index='ts')
+pd.merge(ddd, weather, left_index='ts')
+pd.merge(ddd, weather, left_index='ts', right_index='ts')
+ddd
+weather
+weather.drop_duplicates()
+weather
+weather = weather.drop_duplicates()
+weather.index
+weather.index.value
+weather.index.all
+weather.index.size
+weather.index[0]
+weather.index[1
+]
+weather.index[144]
+weather.index.toarray()
+np.array(weather.index)
+len(np.array(weather.index))
+len(set(np.array(weather.index)))
+weather.index.drop_duplicates()
+weather.drop_duplicates()
+weather.drop_duplicates()
+weather
+weather.drop_duplicates
+weather
+weather
+pd.merge(ddd, weather, left_index='ts', right_index='ts')
+ddd
+weather
+weather.index.drop_duplicates
+weather.index.drop_duplicates()
+weathre.index = weather.index.drop_duplicates()
+weather.index = weather.index.drop_duplicates()
+weather.drop_duplicates()
+weather.drop_duplicates(take_last=True)
+weather.drop_duplicates(subset='rownum', take_last=True)
+weather.drop_duplicates(subset='ts', take_last=True)
+weather = weather.drop_duplicates(subset='ts', take_last=True)
+pd.merge(ddd, weather, left_index='ts', right_index='ts')
+ddd
+pd.merge(ddd, weather, left_index='ts', right_index='ts', how='outer')
+ddd
+pd.merge(ddd, weather, left_index='ts', right_index='ts', how='outer')
+ddd = pd.merge(ddd, weather, left_index='ts', right_index='ts', how='outer')
+ddd
+ddd
+traffic = pd.read_csv('../train_data/traffic_data/traffic_data_2016-01-12')
+traffic
+traffic['ts'] = traffic['tj_time'].apply(util.convert_ts)
+traffic
+traffic['ts']
+traffic
+traffic.drop('tj_time', 1)
+traffic
+traffic = traffic.drop('tj_time', 1)
+traffic
+ddd
+ddd(['district_hash', 'ts'])
+ddd['district_hash', 'ts']
+ddd['district_hash']
+ddd
+traffic
+traffic.index = traffic['district_hash', 'ts']
+traffic['district_hash', 'ts']
+traffic
+traffic['district_hash']
+traffic['district_hash', 'ts']
+traffic['ts']
+traffic[['district_hash', 'ts']]
+traffic.index = traffic[['district_hash', 'ts']]
+traffic.index
+traffic.index.drop_duplicates()
+ddd
+ddd.index = ddd[['district_hash', 'ts']]
+ddd.index = ddd[['district_hash', 'ts_x']]
+ddd
+traffic
+ddd
+ddd.join(traffic)
+ddd
+traffic
+traffic.drop('district_hash', 1)
+traffic.drop('ts', 1)
+ddd.join(traffic)
+ddd
+traffic
+traffic
+traffic = traffic.drop('district_hash', 1)
+ddd.join(traffic)
+ddd
+ddd.join(traffic)
+ddd = ddd
+ddd
+ddd = ddd.drop('ts_y', 1)
+ddd
+ddd.index
+ddd.index[0]
+ddd
+ddd[0]
+ddd
+get_ipython().magic(u'save a.py 1-275')

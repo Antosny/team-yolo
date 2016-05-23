@@ -56,39 +56,43 @@ if __name__ == '__main__':
     idx = open(sys.argv[2]).read().split('\n')[:-1]
     loadidx(idx)
     loadorder(test_order)
-    # loadvali(open(sys.argv[3]).read().split('\n')[:-1])
-    # testdict = {}
-    # for v in vali:
-    #     prev = '-'.join(v.split('-')[:-1]) + '-' + str(int(v.split('-')[-1]) - 1)
-    #     for p in place:
-    #         if p not in testdict:
-    #             testdict[p] = []
-    #         truep = 0
-    #         prep = 1
-    #         if prev in place[p]:
-    #             prep = place[p][prev][1] / 2.0
-    #         if prep < 1:
-    #             prep = 1
-    #         if v not in place[p]:
-    #             continue
-    #         testdict[p].append((v, place[p][v][1], prep))
-    # print mape(testdict)
+    loadvali(open(sys.argv[3]).read().split('\n')[:-1])
+    testdict = {}
+    for v in vali:
+        prev = '-'.join(v.split('-')[:-1]) + '-' + str(int(v.split('-')[-1]) - 1)
+        for p in place:
+            if p not in testdict:
+                testdict[p] = []
+            truep = 0
+            prep = 1
+            if prev in place[p]:
+                prep = (place[p][prev][1]) / 2.0
+                #if prep > 10:
+                #    prep = prep * 2
+            if prep < 1:
+                prep = 1
+            if v not in place[p]:
+                continue
+            testdict[p].append((v, place[p][v][1], prep))
+            if place[p][v][1] > 0 and abs((prep - place[p][v][1]) / (place[p][v][1] + 0.0)) > 0.5 and prev in place[p]:
+                print p + ' ' + str(place[p][v][1]) + ' ' + str(prep) + ' ' + str(place[p][prev][1])
+    print mape(testdict)
             
-    test_date = open(sys.argv[3]).read().split('\n')[1:-1]
-    w = open('baseline.csv', 'w')
-    for dt in test_date:
-        dtinfo = dt.split('-')
-        for p in place.keys():
-            totalnum = 0
-            for i in range(1, 2):
-                newdt = int(dtinfo[-1]) - i
-                newdt = '-'.join(dtinfo[0:-1]) + '-' + str(newdt)
-                skipnum = 0
-                if newdt in place[p]:
-                    skipnum = place[p][newdt][1]
-                totalnum += 0.5 * skipnum
-            if totalnum < 1:
-                totalnum = 1.0
-            w.write(idxdict[p] + ',' + dt + ',' + str(totalnum) + '\n')
-    w.close()
+#     test_date = open(sys.argv[3]).read().split('\n')[1:-1]
+#     w = open('baseline.csv', 'w')
+#     for dt in test_date:
+#         dtinfo = dt.split('-')
+#         for p in place.keys():
+#             totalnum = 0
+#             for i in range(1, 2):
+#                 newdt = int(dtinfo[-1]) - i
+#                 newdt = '-'.join(dtinfo[0:-1]) + '-' + str(newdt)
+#                 skipnum = 0
+#                 if newdt in place[p]:
+#                     skipnum = place[p][newdt][1]
+#                 totalnum += 0.5 * skipnum
+#             if totalnum < 1:
+#                 totalnum = 1.0
+#             w.write(idxdict[p] + ',' + dt + ',' + str(2) + '\n')
+#     w.close()
 

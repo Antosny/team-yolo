@@ -1,11 +1,31 @@
 import os
 import sys
+import pandas as pd
+import numpy as np
 def convert_ts(timestamp):
     day, t = timestamp.split(' ')
     h, m, s = t.split(':')
     result = day + '-' + str(int(h) * 6 + int(m) / 10 + 1)
     return result
 
+def answer(x):
+    if x is np.nan:
+        return 0
+    return 1
+
+def order_to_ts(fromfile, tofile):
+    a = pd.read_csv(fromfile)
+    a['ts'] = a['time'].apply(convert_ts)
+    a = a.drop('time', 1)
+    a['call'] = a['ts'].apply(lambda x:1)
+    a['answer'] = a['driver_id'].apply(answer)
+    a = a.drop('passenger_id', 1)
+    a = a.drop('driver_id', 1)
+    agroup = a.groupby(['start_district_hash', 'ts'])
+    suma = agroup.sum()
+    suma['gap'] = suma['call'] - suma['answer']
+    suma = suma.drop('price', 1)
+    suma.to_csv(tofile)
 
 def add_header(dirpath, topath):
     order = ['order_id', 'driver_id', 'passenger_id', 'start_district_hash', 'dest_district_hash', 'price', 'time']
@@ -21,6 +41,14 @@ def add_header(dirpath, topath):
         print d
         os.mkdir(topath + '/' + d)
         flist = os.listdir(dirpath + '/' + d)
+        wall = open(topath + '/' + d + '/' + d + '_all', 'w')
+        if d.find('order') != -1:
+            wall.write(','.join(order) + '\n')
+        if d.find('traffic') != -1:
+            wall.write(','.join(traffic) + '\n')
+        if d.find('weather') != -1:
+            wall.write(','.join(weather) + '\n')
+        
         for f in flist:
             print f
             a = open(dirpath + '/' + d + '/' + f).read().split('\n')[:-1]
@@ -29,6 +57,7 @@ def add_header(dirpath, topath):
                 w.write(','.join(order) + '\n')
                 for line in a:
                     w.write(','.join(line.split('\t')) + '\n')
+                    wall.write(','.join(line.split('\t')) + '\n')
             if d.find('poi') != -1:
                 w.write(','.join(poi) + '\n')
                 for line in a:
@@ -39,6 +68,7 @@ def add_header(dirpath, topath):
                 for line in a:
                     tinfo = line.split('\t')
                     w.write(tinfo[0] + ',' + '\t'.join(tinfo[1:-1]) + ',' + tinfo[-1] + '\n')
+                    wall.write(tinfo[0] + ',' + '\t'.join(tinfo[1:-1]) + ',' + tinfo[-1] + '\n')
             if d.find('cluster') != -1:
                 w.write(','.join(cluster) + '\n')
                 for line in a:
@@ -47,10 +77,13 @@ def add_header(dirpath, topath):
                 w.write(','.join(weather) + '\n')
                 for line in a:
                     w.write(','.join(line.split('\t')) + '\n')
+                    wall.write(','.join(line.split('\t')) + '\n')
             w.close()
 
 
 
 if __name__ == '__main__':
-    print convert_ts('2016-01-07 23:45:42')
-    add_header(sys.argv[1], sys.argv[2])
+    #print convert_ts('2016-01-07 23:45:42')
+    #add_header(sys.argv[1], sys.argv[2])
+
+    order_to_ts(sys.argv[1], sys.argv[2])
