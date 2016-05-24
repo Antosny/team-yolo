@@ -12,7 +12,16 @@ def ts_idx(ts):
     tinfo = ts.split('-')
     return int(tinfo[2]) * 144 + int(tinfo[3])
 
-    
+def idx_ts(idx):
+    slot = idx % 144
+    if slot == 0:
+        slot = 144
+    day = (idx - 1) / 144
+    if day < 10:
+        day = '0' + str(day)
+    else:
+        day = str(day)
+    return '2016-01-' + day + '-' + str(slot) 
 
 def answer(x):
     if x is np.nan:
@@ -94,7 +103,11 @@ def add_header(dirpath, topath):
 
 
 if __name__ == '__main__':
-    #print convert_ts('2016-01-07 23:45:42')
+    ts = convert_ts('2016-01-07 00:09:42')
+    print ts
+    tsidx = ts_idx(ts)
+    print tsidx
+    print idx_ts(tsidx)
     #add_header(sys.argv[1], sys.argv[2])
 
-    order_to_ts(sys.argv[1], sys.argv[2])
+    #order_to_ts(sys.argv[1], sys.argv[2])
