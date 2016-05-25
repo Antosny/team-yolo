@@ -11,9 +11,9 @@ testset = set()
 place_map = {}
 
 def load_map(path):
-    a = open(path).read().split('\n')[:-1]
+    a = open(path).read().split('\n')[1:-1]
     for line in a:
-        place, idx = line.split('\t')
+        place, idx = line.split(',')
         place_map[place] = int(idx)
 
 def load_test(path):
@@ -76,7 +76,7 @@ def transform(data, istrain = True):
                 continue
             label = float(datadict[(place, ts)]['gap'])
             y.append(label)
-            x.append(get_feature(place, ts))
+            x.append(get_feature(place, ts, datadict))
             idx.append([place, ts])
             if label == 0:
                 weight.append(0.1)
@@ -86,17 +86,17 @@ def transform(data, istrain = True):
         for place in place_map:
             for ts in testset:
                 y.append(-1)
-                x.append(get_feature(place, ts))
+                x.append(get_feature(place, ts, datadict))
                 idx.append([place, ts])
 
     return x, y, np.array(idx), weight
 
-def get_feature(place, ts):
+def get_feature(place, ts, datadict):
     f = []
     f.append(place_map[place])
     f += ts_feature(ts)
     #previous gap
-    for i in range(1, 3):
+    for i in range(1, 4):
         if (place, ts - i) in datadict:
             f.append(datadict[(place, ts - i)]['gap'])
             f.append(datadict[(place, ts - i)]['call'])
