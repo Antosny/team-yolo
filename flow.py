@@ -32,17 +32,24 @@ def is_test_data(ts):
             return True
     return False
 
-def split_data(order):
-    order['test'] = order['ts'].apply(is_test_data)
-    traindata = order[order['test'] == False]
-    testdata = order[order['test'] == True]
-    traindata.index = traindata[['start_district_hash', 'tsidx']]
-    idx = pd.MultiIndex.from_tuples(traindata.index)
-    traindata.index = idx
-    testdata.index = testdata[['start_district_hash', 'tsidx']]
-    idx = pd.MultiIndex.from_tuples(testdata.index)
-    testdata.index = idx
-    return traindata, testdata
+def split_data(order, vali = True):
+    if vali:
+        order['test'] = order['ts'].apply(is_test_data)
+        traindata = order[order['test'] == False]
+        testdata = order[order['test'] == True]
+        traindata.index = traindata[['start_district_hash', 'tsidx']]
+        idx = pd.MultiIndex.from_tuples(traindata.index)
+        traindata.index = idx
+        testdata.index = testdata[['start_district_hash', 'tsidx']]
+        idx = pd.MultiIndex.from_tuples(testdata.index)
+        testdata.index = idx
+        return traindata, testdata
+    else:
+        traindata = order
+        traindata.index = traindata[['start_district_hash', 'tsidx']]
+        idx = pd.MultiIndex.from_tuples(traindata.index)
+        traindata.index = idx
+        return traindata
 
 def ts_feature(ts):
     ts = util.idx_ts(int(ts))
@@ -57,51 +64,49 @@ def ts_feature(ts):
     feature.append(dt.minute)
     return feature
 
-def transform(data):
+def transform(data, istrain = True):
     x = []
     y = []
     idx = []
     weight = []
     datadict = data.to_dict('index')
-    for place, ts in datadict:
-        if place not in place_map:
-            print place
-            continue
-        label = float(datadict[(place, ts)]['gap'])
-        
-        #if label == 0:
-        #    continue
-        y.append(label)
-        #convert feature
-        f = []
-        f.append(place_map[place])
-        f += ts_feature(ts)
-        #previous gap
-        for i in range(1, 2):
-            if (place, ts - i) in datadict:
-                f.append(datadict[(place, ts - i)]['gap'])
-                f.append(datadict[(place, ts - i)]['call'])
-                f.append(datadict[(place, ts - i)]['answer'])
+    if istrain:
+        for place, ts in datadict:
+            if place not in place_map:
+                continue
+            label = float(datadict[(place, ts)]['gap'])
+            y.append(label)
+            x.append(get_feature(place, ts))
+            idx.append([place, ts])
+            if label == 0:
+                weight.append(0.1)
             else:
-                f.append(0)
-                f.append(0)
-                f.append(0)
-        x.append(f)
-        idx.append([place, ts])
-        if label == 0:
-            weight.append(0.1)
-        else:
-            weight.append(1./label)
-    # for place in data.index.levels[0]:
-    #     tsset = set(data.loc[place].index)
-    #     print place
-    #     for ts in tsset:
-    #         y.append(data.loc[place, ts]['gap'])
-    #         if ts - 1 in tsset:
-    #             x.append(data.loc[place, ts - 1]['gap'])
-    #         else:
-    #             x.append(0)        
+                weight.append(1./label)
+    else:
+        for place in place_map:
+            for ts in testset:
+                y.append(-1)
+                x.append(get_feature(place, ts))
+                idx.append([place, ts])
+
     return x, y, np.array(idx), weight
+
+def get_feature(place, ts):
+    f = []
+    f.append(place_map[place])
+    f += ts_feature(ts)
+    #previous gap
+    for i in range(1, 3):
+        if (place, ts - i) in datadict:
+            f.append(datadict[(place, ts - i)]['gap'])
+            f.append(datadict[(place, ts - i)]['call'])
+            f.append(datadict[(place, ts - i)]['answer'])
+        else:
+            f.append(0)
+            f.append(0)
+            f.append(0)
+    return f
+
 
 def mape(y_true, y_pred, idx, istrain = False):
     lenplace = len(set(idx[:, 0]))
@@ -113,7 +118,6 @@ def mape(y_true, y_pred, idx, istrain = False):
     for i in range(0, len(y_true)):
         place, ts = idx[i]
         if not istrain and int(ts) not in testset:
-            #print ts
             continue
         if y_true[i] > 0:
             result_mape += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
@@ -121,19 +125,48 @@ def mape(y_true, y_pred, idx, istrain = False):
     
 
 if __name__ == '__main__':
-    testpath = sys.argv[1]
-    orderpath = sys.argv[2]
-    load_test(testpath)
-    load_map(sys.argv[3])
-    traindata, testdata = split_data(load_data(orderpath))
-    x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
-    print '---------------'
-    x_te, y_te, idx_te, weight_te = transform(testdata)
-    print 'size of training:' + str(len(y_tr))
-    print 'size of test:' + str(len(y_te))
-    gbrt = GradientBoostingRegressor(loss='lad', max_depth=6)
-    gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
-    tr_pred = gbrt.predict(x_tr)
-    y_pred = gbrt.predict(x_te)
-    print 'train mape:' + str(mape(y_tr, tr_pred, idx_tr, True))
-    print 'validation mape:' + str(mape(y_te, y_pred, idx_te))
+    if len(sys.argv) < 2:
+        print 'usage: python flow.py vali|test params'
+        sys.exit(1)
+    if sys.argv[1] == 'vali':
+        valipath = sys.argv[2]
+        orderpath = sys.argv[3]
+        load_test(valipath)
+        load_map(sys.argv[4])
+        traindata, testdata = split_data(load_data(orderpath), True)
+        x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
+        print '---------------'
+        x_te, y_te, idx_te, weight_te = transform(testdata)
+        print 'size of training:' + str(len(y_tr))
+        print 'size of test:' + str(len(y_te))
+        gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
+        gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
+        tr_pred = gbrt.predict(x_tr)
+        y_pred = gbrt.predict(x_te)
+        print 'train mape:' + str(mape(y_tr, tr_pred, idx_tr, True))
+        print 'validation mape:' + str(mape(y_te, y_pred, idx_te))
+    if sys.argv[1] == 'test':
+        testpath = sys.argv[2]
+        orderpath = sys.argv[3]
+        testorderpath = sys.argv[4]
+        load_test(testpath)
+        load_map(sys.argv[5])
+        traindata = split_data(load_data(orderpath), False)
+        testdata = split_data(load_data(testorderpath), False)
+        x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
+        print '---------------'
+        x_te, y_te, idx_te, weight_te = transform(testdata, False)
+        print 'size of training:' + str(len(y_tr))
+        print 'size of test:' + str(len(y_te))
+        gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
+        gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
+        tr_pred = gbrt.predict(x_tr)
+        y_pred = gbrt.predict(x_te)
+        w = open(sys.argv[6], 'w')
+        for i in range(0, len(idx_te)):
+            place = str(place_map[idx_te[i][0]])
+            ts = str(util.idx_ts(int(idx_te[i][1])))
+            print place + ' ' + ts
+        w.write(place + ',' + ts + ',' + str(max(y_pred[i], 1.0)) + '\n')
+        w.close()
+        print 'train mape:' + str(mape(y_tr, tr_pred, idx_tr, True))

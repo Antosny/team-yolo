@@ -110,4 +110,4 @@ if __name__ == '__main__':
     print idx_ts(tsidx)
     #add_header(sys.argv[1], sys.argv[2])
 
-    #order_to_ts(sys.argv[1], sys.argv[2])
+    order_to_ts(sys.argv[1], sys.argv[2])
