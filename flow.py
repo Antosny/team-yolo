@@ -135,8 +135,16 @@ if __name__ == '__main__':
         load_map(sys.argv[4])
         traindata, testdata = split_data(load_data(orderpath), True)
         x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
+        w = open('train.data', 'w')
+        for i in range(0, len(weight_tr)):
+            w.write(str(weight_tr[i]) + ':::' + str(y_tr[i]) + ':::' + '$'.join([str(x) for x in x_tr[i]]) + '\n')
+        w.close()
         print '---------------'
         x_te, y_te, idx_te, weight_te = transform(testdata)
+        w = open('test.data', 'w')
+        for i in range(0, len(weight_te)):
+            w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
+        w.close()
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
         gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
