@@ -128,6 +128,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print 'usage: python flow.py vali|test params'
         sys.exit(1)
+    gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
     if sys.argv[1] == 'vali':
         valipath = sys.argv[2]
         orderpath = sys.argv[3]
@@ -143,11 +144,13 @@ if __name__ == '__main__':
         x_te, y_te, idx_te, weight_te = transform(testdata)
         w = open('test.data', 'w')
         for i in range(0, len(weight_te)):
+            ts = int(idx_te[i][1])
+            if ts not in testset:
+                continue
             w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
         w.close()
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
-        gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
         gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
         tr_pred = gbrt.predict(x_tr)
         y_pred = gbrt.predict(x_te)
@@ -166,7 +169,6 @@ if __name__ == '__main__':
         x_te, y_te, idx_te, weight_te = transform(testdata, False)
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
-        gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
         gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
         tr_pred = gbrt.predict(x_tr)
         y_pred = gbrt.predict(x_te)
