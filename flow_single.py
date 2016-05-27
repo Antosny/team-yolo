@@ -207,6 +207,6 @@ if __name__ == '__main__':
             place = str(place_map[idx_te[i][0]])
             ts = str(util.idx_ts(int(idx_te[i][1])))
             print place + ' ' + ts
-        w.write(place + ',' + ts + ',' + str(max(y_pred[i], 1.0)) + '\n')
+            w.write(place + ',' + ts + ',' + str(max(y_pred[i], 1.0)) + '\n')
         w.close()
         print 'train mape:' + str(mape(y_tr, tr_pred, idx_tr, True))

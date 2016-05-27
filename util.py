@@ -103,11 +103,11 @@ def add_header(dirpath, topath):
 
 
 if __name__ == '__main__':
-    ts = convert_ts('2016-01-07 00:09:42')
-    print ts
-    tsidx = ts_idx(ts)
-    print tsidx
-    print idx_ts(tsidx)
-    #add_header(sys.argv[1], sys.argv[2])
-
-    order_to_ts(sys.argv[1], sys.argv[2])
+    if len(sys.argv) != 4:
+        print 'usage: python util.py header|order frompath topath'
+    if sys.argv[1] == 'header':
+        add_header(sys.argv[2], sys.argv[3])
+    if sys.argv[1] == 'order':
+        order_to_ts(sys.argv[2], sys.argv[3])
+    else:
+        print 'usage: python util.py header|order frompath topath'
