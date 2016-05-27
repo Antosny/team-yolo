@@ -6,6 +6,7 @@ import util
 from datetime import datetime
 from sklearn.linear_model import *
 from sklearn.ensemble import *
+import math
 
 testset = set()
 place_map = {}
@@ -80,8 +81,8 @@ def transform(data, istrain = True):
             y.append(label)
             x.append(get_feature(place, ts, datadict))
             idx.append([place, ts])
-            if label == 0:
-                weight.append(0.1)
+            if label < 1:
+                weight.append(0.0001)
             else:
                 weight.append(1./label)
     else:
@@ -131,7 +132,6 @@ def get_feature(place, ts, datadict):
                 
     return f
 
-
 def mape(y_true, y_pred, idx, istrain = False):
     lenplace = len(set(idx[:, 0]))
     if istrain:
@@ -139,13 +139,37 @@ def mape(y_true, y_pred, idx, istrain = False):
     else:
         divider = lenplace * len(testset) * 1.
     result_mape = 0.0
+    placemape = {}
+    gapmape = {}
+    w = ''
+    if not istrain:
+        w = open('vali_test.csv', 'w')
     for i in range(0, len(y_true)):
         place, ts = idx[i]
         if not istrain and int(ts) not in testset:
             continue
         if y_true[i] > 0:
+            gap = y_true[i]
+            if gap > 200:
+                gap = 200
+            if gap not in gapmape:
+                gapmape[gap] = []
             result_mape += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+            if place not in placemape:
+                placemape[place] = 0.
+            placemape[place] += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+            gapmape[gap].append(abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.)))
+            if not istrain:
+                w.write(place + ' ' + util.idx_ts(int(ts)) + ' ' + str(y_true[i]) + ' ' + str(y_pred[i]) + '\n')
+    if not istrain:
+        w.close()
+    for place in sorted(placemape.keys()):
+        placemape[place] /= (divider / lenplace)
+        print place + ' mape:' + str(placemape[place])
+    for gap in sorted(gapmape.keys()):
+        print str(gap) + ' mape:' + str(sum(gapmape[gap]) / (len(gapmape[gap]))) + ' count:' + str(len(gapmape[gap]))
     return result_mape / divider
+
     
 
 

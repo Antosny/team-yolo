@@ -81,7 +81,7 @@ def transform(data, istrain = True):
             x.append(get_feature(place, ts, datadict))
             idx.append([place, ts])
             if label == 0:
-                weight.append(0.1)
+                weight.append(0.0001)
             else:
                 weight.append(1./label)
     else:
@@ -136,7 +136,7 @@ def get_feature(place, ts, datadict):
     f.append(place_map[place])
     f += ts_feature(ts)
     #previous gap
-    for i in range(1, 2):
+    for i in range(1, 4):
         if i <= 1:
             if (place, ts - i) in datadict:
                 f.append(datadict[(place, ts - i)]['gap'])
@@ -147,8 +147,7 @@ def get_feature(place, ts, datadict):
                 f.append(0)
                 f.append(0)
         else:
-            oldkey = (place, ts - i + 1)
-            crtkey = (place, ts - i)
+            oldkey = (place, ts - i)
             g = 0
             c = 0
             a = 0
@@ -156,10 +155,6 @@ def get_feature(place, ts, datadict):
                 g += datadict[oldkey]['gap']
                 c += datadict[oldkey]['call']
                 a += datadict[oldkey]['answer']
-            if crtkey in datadict:
-                g -= datadict[crtkey]['gap']
-                c -= datadict[crtkey]['call']
-                a -= datadict[crtkey]['answer']
             f.append(g)
             f.append(c)
             f.append(a)
@@ -175,12 +170,19 @@ def mape(y_true, y_pred, idx, istrain = False):
     else:
         divider = lenplace * len(testset) * 1.
     result_mape = 0.0
+    placemape = {}
     for i in range(0, len(y_true)):
         place, ts = idx[i]
         if not istrain and int(ts) not in testset:
             continue
         if y_true[i] > 0:
             result_mape += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+            if place not in placemape:
+                placemape[place] = 0.
+            placemape[place] += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+    for place in placemape:
+        placemape[place] /= (divider / lenplace)
+        print place + ' mape:' + str(placemape[place])
     return result_mape / divider
     
 
@@ -193,8 +195,9 @@ def mape_per_place(y_true, y_pred, idx, istrain = False):
         divider = lenplace * len(testset) * 1.
     result_mape = 0.0
     print '----mape----'
-    for place in y_true:
+    for place in sorted(y_true.keys()):
         #print place
+        placesum = 0.
         for i in range(0, len(y_true[place])):
             #print i
             p, ts = idx[place][i]
@@ -202,6 +205,8 @@ def mape_per_place(y_true, y_pred, idx, istrain = False):
                 continue
             if y_true[place][i] > 0:
                 result_mape += abs((y_true[place][i] - max(1., y_pred[place][i])) / (y_true[place][i] * 1.))
+                placesum += abs((y_true[place][i] - max(1., y_pred[place][i])) / (y_true[place][i] * 1.))
+        print place + ' mape:' + str(placesum / (divider / lenplace))
     return result_mape / divider
 
 if __name__ == '__main__':
