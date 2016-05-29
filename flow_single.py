@@ -105,16 +105,27 @@ def get_feature(place, ts, datadict):
     f.append(place_map[place])
     f += ts_feature(ts)
     #previous gap
-    for i in range(1, 4):
-        if i <= 5:
+    for i in range(1, 2):
+        if i == 0:
+            continue
+        if i <= 1:
             if (place, ts - i) in datadict:
                 f.append(datadict[(place, ts - i)]['gap'])
                 f.append(datadict[(place, ts - i)]['call'])
                 f.append(datadict[(place, ts - i)]['answer'])
+                gapinfo = datadict[(place, ts - i)]['order_min'].split(':')
+                priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
+                for j in range(0, len(gapinfo)):
+                    gap_min = gapinfo[j].split(',')
+                    for g in gap_min:
+                        f.append(int(g))
+                # for j in range(0, len(priceinfo)):
+                #     price_min = priceinfo[j].split(',')
+                #     for p in price_min:
+                #         f.append(float(g))
             else:
-                f.append(0)
-                f.append(0)
-                f.append(0)
+                for j in range(0, 33):
+                    f.append(0)
         else:
             oldkey = (place, ts - i + 1)
             crtkey = (place, ts - i)
@@ -144,7 +155,9 @@ def mape(y_true, y_pred, idx, istrain = False):
     else:
         divider = lenplace * len(testset) * 1.
     result_mape = 0.0
+    calibration_mape = 0.0
     placemape = {}
+    gapmean = {}
     for i in range(0, len(y_true)):
         place, ts = idx[i]
         if not istrain and int(ts) not in testset:
@@ -153,9 +166,19 @@ def mape(y_true, y_pred, idx, istrain = False):
             if place not in placemape:
                 placemape[place] = 0.0
             result_mape += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+            cali_pred = y_pred[i]
+            if y_true[i] not in gapmean:
+                gapmean[y_true[i]] = []
+            gapmean[y_true[i]].append(y_pred[i])
+            elif cali_pred > 10:
+                cali_pred *= 1.2
+            calibration_mape += abs((y_true[i] - cali_pred) / (y_true[i] * 1.))
             placemape[place] += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+    for gap in sorted(gapmean.keys()):
+        print 'gap:' + str(gap) + ' count:' + str(len(gapmean[gap])) + ' average:' + str(sum(gapmean[gap]) / len(gapmean[gap]))
     for place in sorted(placemape.keys()):
         print place + ' mape:' + str(placemape[place] / (divider / lenplace))
+    print 'calibration mape:' + str(calibration_mape / divider)
     return result_mape / divider
     
 
