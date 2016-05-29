@@ -47,6 +47,74 @@ def order_to_ts(fromfile, tofile):
     suma.to_csv(tofile, index=False)
     return suma
 
+def comma_join(l):
+    return ','.join([str(i) for i in l])
+
+def order_min(l):
+    info = l.split('#@#')
+    answer = np.zeros(10)
+    call = np.zeros(10)
+    timelist = info[0].split(',')
+    orderlist = info[2].split(',')
+    for i in range(0, len(timelist)):
+        idx = int(timelist[i].split(':')[1][-1])
+        call[idx] += 1
+        if orderlist[i] != 'nan':
+            answer[idx] += 1
+    gap = call - answer
+    result = ''
+    for i in range(0, len(answer)):
+        result += str(int(call[i])) + ',' + str(int(answer[i])) + ',' + str(int(gap[i])) + ':'
+    return result[:-1]
+
+def price_min(l):
+    info = l.split('#@#')
+    answer = np.zeros(10)
+    call = np.zeros(10)
+    answer_cnt = np.zeros(10)
+    call_cnt = np.zeros(10)
+    timelist = info[0].split(',')
+    pricelist = info[1].split(',')
+    orderlist = info[2].split(',')
+    for i in range(0, len(timelist)):
+        idx = int(timelist[i].split(':')[1][-1])
+        call[idx] += float(pricelist[i])
+        call_cnt[idx] += 1
+        if orderlist[i] != 'nan':
+            answer[idx] += float(pricelist[i])
+            answer_cnt[idx] += 1
+    answer_cnt[answer_cnt == 0] = 1
+    call_cnt[call_cnt == 0] = 1
+    answer = answer / answer_cnt
+    call = call / call_cnt
+    
+    result = ''
+    for i in range(0, len(answer)):
+        result += str(call[i]) + ',' + str(answer[i]) + ':'
+    return result[:-1]
+
+
+def order_to_ts_min(fromfile, tofile):
+    a = pd.read_csv(fromfile)
+    a['tsidx'] = a['time'].apply(convert_ts)
+    a['tsidx'] = a['tsidx'].apply(ts_idx)
+    agroup = a.groupby(['start_district_hash', 'tsidx'])
+    agroup = agroup.agg({'time':comma_join, 'price':comma_join, 'driver_id':comma_join})
+    agroup['info'] = agroup['time'] + '#@#' + agroup['price'] + '#@#' + agroup['driver_id']
+    agroup = agroup.drop('time', 1)
+    agroup = agroup.drop('price', 1)
+    agroup = agroup.drop('driver_id', 1)
+    agroup['answer'] = agroup['info'].apply(lambda x:len([i for i in x.split('#@#')[2].split(',') if i != 'nan']))
+    agroup['call'] = agroup['info'].apply(lambda x:len([i for i in x.split('#@#')[2].split(',')]))
+    agroup['gap'] = agroup['call'] - agroup['answer']
+    agroup['order_min'] = agroup['info'].apply(order_min)
+    agroup['price_min'] = agroup['info'].apply(price_min)
+    agroup.to_csv(tofile, index=True)
+    return agroup
+
+
+
+
 def add_header(dirpath, topath):
     order = ['order_id', 'driver_id', 'passenger_id', 'start_district_hash', 'dest_district_hash', 'price', 'time']
     poi = ['district_hash', 'poi_class']
@@ -109,5 +177,7 @@ if __name__ == '__main__':
         add_header(sys.argv[2], sys.argv[3])
     if sys.argv[1] == 'order':
         order_to_ts(sys.argv[2], sys.argv[3])
+    if sys.argv[1] == 'ordermin':
+        order_to_ts_min(sys.argv[2], sys.argv[3])
     else:
         print 'usage: python util.py header|order frompath topath'

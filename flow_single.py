@@ -7,6 +7,7 @@ from datetime import datetime
 from sklearn.linear_model import *
 from sklearn.ensemble import *
 
+writefeature=True
 testset = set()
 place_map = {}
 
@@ -28,13 +29,13 @@ def load_data(order):
 
 def is_test_data(ts):
     for i in range(0, 2):
-        if util.ts_idx(ts) + i in testset:
+        if int(ts) + i in testset:
             return True
     return False
 
 def split_data(order, vali = True):
     if vali:
-        order['test'] = order['ts'].apply(is_test_data)
+        order['test'] = order['tsidx'].apply(is_test_data)
         traindata = order[order['test'] == False]
         testdata = order[order['test'] == True]
         traindata.index = traindata[['start_district_hash', 'tsidx']]
@@ -59,6 +60,10 @@ def ts_feature(ts):
     tsstr = '-'.join(tsinfo[:-1]) + '-' + str(tshour) + '-' + str(tsmin)
     dt = datetime.strptime(tsstr, '%Y-%m-%d-%H-%M')
     feature = []
+    weekend = 0
+    if dt.isoweekday() < 6:
+        weekend = 1
+    #feature.append(weekend)
     feature.append(dt.isoweekday())
     feature.append(dt.hour)
     feature.append(dt.minute)
@@ -81,7 +86,7 @@ def transform(data, istrain = True):
             x.append(get_feature(place, ts, datadict))
             idx.append([place, ts])
             if label == 0:
-                weight.append(0.1)
+                weight.append(0.001)
             else:
                 weight.append(1./label)
     else:
@@ -100,8 +105,8 @@ def get_feature(place, ts, datadict):
     f.append(place_map[place])
     f += ts_feature(ts)
     #previous gap
-    for i in range(1, 2):
-        if i <= 1:
+    for i in range(1, 4):
+        if i <= 5:
             if (place, ts - i) in datadict:
                 f.append(datadict[(place, ts - i)]['gap'])
                 f.append(datadict[(place, ts - i)]['call'])
@@ -139,12 +144,18 @@ def mape(y_true, y_pred, idx, istrain = False):
     else:
         divider = lenplace * len(testset) * 1.
     result_mape = 0.0
+    placemape = {}
     for i in range(0, len(y_true)):
         place, ts = idx[i]
         if not istrain and int(ts) not in testset:
             continue
         if y_true[i] > 0:
+            if place not in placemape:
+                placemape[place] = 0.0
             result_mape += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+            placemape[place] += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
+    for place in sorted(placemape.keys()):
+        print place + ' mape:' + str(placemape[place] / (divider / lenplace))
     return result_mape / divider
     
 
@@ -162,20 +173,20 @@ if __name__ == '__main__':
         traindata, testdata = split_data(load_data(orderpath), True)
         x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
         #print idx_tr.keys()
-        #w = open('train.data', 'w')
-        #for i in range(0, len(weight_tr)):
-        #    w.write(str(weight_tr[i]) + ':::' + str(y_tr[i]) + ':::' + '$'.join([str(x) for x in x_tr[i]]) + '\n')
-        #w.close()
+        w = open('train.data', 'w')
+        for i in range(0, len(weight_tr)):
+           w.write(str(weight_tr[i]) + ':::' + str(y_tr[i]) + ':::' + '$'.join([str(x) for x in x_tr[i]]) + '\n')
+        w.close()
         print '---------------'
         x_te, y_te, idx_te, weight_te = transform(testdata)
         #print idx_te.keys()
-        #w = open('test.data', 'w')
-        #for i in range(0, len(weight_te)):
-        #    ts = int(idx_te[i][1])
-        #    if ts not in testset:
-        #        continue
-        #    w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
-        #w.close()
+        w = open('test.data', 'w')
+        for i in range(0, len(weight_te)):
+           ts = int(idx_te[i][1])
+           if ts not in testset:
+               continue
+           w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
+        w.close()
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
         model = {}
@@ -195,8 +206,21 @@ if __name__ == '__main__':
         traindata = split_data(load_data(orderpath), False)
         testdata = split_data(load_data(testorderpath), False)
         x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
+        w = open('train.data.all', 'w')
+        for i in range(0, len(weight_tr)):
+           w.write(str(weight_tr[i]) + ':::' + str(y_tr[i]) + ':::' + '$'.join([str(x) for x in x_tr[i]]) + '\n')
+        w.close()
+
         print '---------------'
         x_te, y_te, idx_te, weight_te = transform(testdata, False)
+        w = open('test.data.all', 'w')
+        for i in range(0, len(weight_te)):
+           ts = int(idx_te[i][1])
+           if ts not in testset:
+               continue
+           w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
+        w.close()
+
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
         gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
