@@ -213,12 +213,13 @@ if __name__ == '__main__':
 
         print '---------------'
         x_te, y_te, idx_te, weight_te = transform(testdata, False)
+        print len(x_te)
         w = open('test.data.all', 'w')
-        for i in range(0, len(weight_te)):
+        for i in range(0, len(y_te)):
            ts = int(idx_te[i][1])
            if ts not in testset:
                continue
-           w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
+           w.write(str(1) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
         w.close()
 
         print 'size of training:' + str(len(y_tr))
