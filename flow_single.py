@@ -10,6 +10,7 @@ from sklearn.ensemble import *
 writefeature=True
 testset = set()
 place_map = {}
+allorder = ''
 
 def load_map(path):
     a = open(path).read().split('\n')[1:-1]
@@ -28,7 +29,7 @@ def load_data(order):
 
 
 def is_test_data(ts):
-    for i in range(0, 4):
+    for i in range(0, 1):
         if int(ts) + i in testset:
             return True
     return False
@@ -83,7 +84,7 @@ def transform(data, istrain = True):
                 continue
             label = float(datadict[(place, ts)]['gap'])
             y.append(label)
-            x.append(get_feature(place, ts, datadict))
+            x.append(get_feature(place, ts, allorder))
             idx.append([place, ts])
             if label == 0:
                 weight.append(0.001)
@@ -112,16 +113,16 @@ def get_feature(place, ts, datadict):
             f.append(datadict[(place, ts - i)]['answer'])
             gapinfo = datadict[(place, ts - i)]['order_min'].split(':')
             priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
-            for j in range(0, len(gapinfo)):
-                gap_min = gapinfo[j].split(',')
-                for g in gap_min:
-                    f.append(int(g))
+            #for j in range(0, len(gapinfo)):
+                #gap_min = gapinfo[j].split(',')
+                #for g in gap_min:
+                #    f.append(int(g))
                 # for j in range(0, len(priceinfo)):
                 #     price_min = priceinfo[j].split(',')
                 #     for p in price_min:
                 #         f.append(float(g))
         else:
-            for j in range(0, 33):
+            for j in range(0, 3):
                 f.append(0)
     return f
 
@@ -168,26 +169,27 @@ if __name__ == '__main__':
     gbrt = GradientBoostingRegressor(loss='lad', max_depth=8, n_estimators=100)
     if sys.argv[1] == 'vali':
         valipath = sys.argv[2]
-        orderpath = sys.argv[3]
+        orderpath = load_data(sys.argv[3])
         load_test(valipath)
         load_map(sys.argv[4])
-        traindata, testdata = split_data(load_data(orderpath), True)
+        allorder = split_data(orderpath, False).to_dict('index')
+        traindata, testdata = split_data(orderpath, True)
         x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
         #print idx_tr.keys()
-        w = open('train.data', 'w')
-        for i in range(0, len(weight_tr)):
-           w.write(str(weight_tr[i]) + ':::' + str(y_tr[i]) + ':::' + '$'.join([str(x) for x in x_tr[i]]) + '\n')
-        w.close()
+        #w = open('train.data', 'w')
+        #for i in range(0, len(weight_tr)):
+        #   w.write(str(weight_tr[i]) + ':::' + str(y_tr[i]) + ':::' + '$'.join([str(x) for x in x_tr[i]]) + '\n')
+        #w.close()
         print '---------------'
         x_te, y_te, idx_te, weight_te = transform(testdata)
         #print idx_te.keys()
-        w = open('test.data', 'w')
-        for i in range(0, len(weight_te)):
-           ts = int(idx_te[i][1])
-           if ts not in testset:
-               continue
-           w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
-        w.close()
+        #w = open('test.data', 'w')
+        #for i in range(0, len(weight_te)):
+        #   ts = int(idx_te[i][1])
+        #   if ts not in testset:
+        #       continue
+        #   w.write(str(weight_te[i]) + ':::' + str(y_te[i]) + ':::' + '$'.join([str(x) for x in x_te[i]]) + '\n')
+        #w.close()
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
         model = {}
@@ -205,6 +207,7 @@ if __name__ == '__main__':
         load_test(testpath)
         load_map(sys.argv[5])
         traindata = split_data(load_data(orderpath), False)
+        allorder = traindata.to_dict('index')
         testdata = split_data(load_data(testorderpath), False)
         x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
         w = open('train.data.all', 'w')
@@ -233,6 +236,9 @@ if __name__ == '__main__':
             place = str(place_map[idx_te[i][0]])
             ts = str(util.idx_ts(int(idx_te[i][1])))
             print place + ' ' + ts
-            w.write(place + ',' + ts + ',' + str(max(y_pred[i], 1.0)) + '\n')
+            pred = y_pred[i]
+            if pred > 5:
+                pred *= 1.2
+            w.write(place + ',' + ts + ',' + str(max(pred, 1.0)) + '\n')
         w.close()
         print 'train mape:' + str(mape(y_tr, tr_pred, idx_tr, True))

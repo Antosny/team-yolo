@@ -199,5 +199,3 @@ if __name__ == '__main__':
         order_to_ts_min(sys.argv[2], sys.argv[3])
     if sys.argv[1] == 'orderminto':
         order_to_ts_min_toplace(sys.argv[2], sys.argv[3])
-    else:
-        print 'usage: python util.py header|order frompath topath'

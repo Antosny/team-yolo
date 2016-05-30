@@ -9,7 +9,8 @@ from sklearn.ensemble import *
 
 testset = set()
 place_map = {}
-
+allorder = ''
+toorder = ''
 def load_map(path):
     a = open(path).read().split('\n')[1:-1]
     for line in a:
@@ -25,9 +26,13 @@ def load_test(path):
 def load_data(order):
     return pd.read_csv(order)
 
+def load_to_data(todata):
+    tod = pd.read_csv(todata)
+    tod.index = tod[['dest_district_hash', 'tsidx']]
+    return tod.to_dict('index')
 
 def is_test_data(ts):
-    for i in range(0, 4):
+    for i in range(0, 1):
         if int(ts) + i in testset:
             return True
     return False
@@ -87,10 +92,10 @@ def transform_per_place(data, istrain = True):
                 weight[place] = []
             label = float(datadict[(place, ts)]['gap'])
             y[place].append(label)
-            x[place].append(get_feature(place, ts, datadict))
+            x[place].append(get_feature(place, ts, allorder))
             idx[place].append([place, ts])
             if label == 0:
-                weight[place].append(0.1)
+                weight[place].append(0.001)
             else:
                 weight[place].append(1./label)
     else:
@@ -117,16 +122,25 @@ def get_feature(place, ts, datadict):
             f.append(datadict[(place, ts - i)]['call'])
             f.append(datadict[(place, ts - i)]['answer'])
             gapinfo = datadict[(place, ts - i)]['order_min'].split(':')
-            #priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
+            priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
             for j in range(0, len(gapinfo)):
                 gap_min = gapinfo[j].split(',')
                 for g in gap_min:
                     f.append(int(g))
-
         else:
             for j in range(0, 33):
                 f.append(0)
-                
+
+    tosum = 0
+    for i in range(1, 2):
+        if (place, ts - i) in toorder:
+            tosum += toorder[(place, ts - i)]['answer']
+            f.append(toorder[(place, ts - i)]['answer'])
+        else:
+            for j in range(0, 1):
+                f.append(0)
+    #f.append(tosum)
+
     return f
 
 
@@ -142,6 +156,7 @@ def mape_per_place(y_true, y_pred, idx, istrain = False):
     cali_mape = 0.0
     print '----mape----'
     placem = {}
+    gapmean = {}
     for place in y_pred:
         #print place
         pmap = 0.0
@@ -151,13 +166,20 @@ def mape_per_place(y_true, y_pred, idx, istrain = False):
             if not istrain and int(ts) not in testset:
                 continue
             if y_true[place][i] > 0:
+                if y_true[place][i] not in gapmean:
+                    gapmean[y_true[place][i]] = []
+                gapmean[y_true[place][i]].append(y_pred[place][i])
                 calipred = y_pred[place][i]
                 if calipred > 10:
                     calipred *= 1.1
-                result_mape += abs((y_true[place][i] - max(1., y_pred[place][i])) / (y_true[place][i] * 1.))
-                pmap += abs((y_true[place][i] - max(1., y_pred[place][i])) / (y_true[place][i] * 1.))
-                cali_mape += abs((y_true[place][i] - max(1., calipred)) / (y_true[place][i] * 1.))
+                result_mape += abs((y_true[place][i] - y_pred[place][i]) / (y_true[place][i] * 1.))
+                pmap += abs((y_true[place][i] - y_pred[place][i]) / (y_true[place][i] * 1.))
+                cali_mape += abs((y_true[place][i] - calipred) / (y_true[place][i] * 1.))
         placem[place] = pmap / (divider / lenplace)
+        
+    for gap in sorted(gapmean.keys()):
+        print 'gap:' + str(gap) + ' count:' + str(len(gapmean[gap])) + ' average:' + str(sum(gapmean[gap]) / len(gapmean[gap]))
+
     for place in sorted(placem.keys()):
         print place + ' mape:' + str(placem[place])
     print 'calibration mape:' + str(cali_mape / divider)
@@ -170,10 +192,13 @@ if __name__ == '__main__':
     gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
     if sys.argv[1] == 'vali':
         valipath = sys.argv[2]
-        orderpath = sys.argv[3]
+        orderpath = load_data(sys.argv[3])
         load_test(valipath)
         load_map(sys.argv[4])
-        traindata, testdata = split_data(load_data(orderpath), True)
+        toorder = load_to_data(sys.argv[5])
+        allorder = split_data(orderpath, False)
+        allorder = allorder.to_dict('index')
+        traindata, testdata = split_data(orderpath, True)
         x_tr, y_tr, idx_tr, weight_tr = transform_per_place(traindata)
         #print idx_tr.keys()
         #w = open('train.data', 'w')
@@ -196,10 +221,10 @@ if __name__ == '__main__':
         tr_pred = {}
         y_pred = {}
         for place in x_tr:
-            if place != '62afaf3288e236b389af9cfdc5206415':
-                continue
+            #if place != '62afaf3288e236b389af9cfdc5206415':
+            #    continue
             print place
-            gbrt = GradientBoostingRegressor(loss='lad', max_depth=6)#, n_estimators=400)
+            gbrt = GradientBoostingRegressor(loss='lad', max_depth=6, n_estimators=200)
             gbrt.fit(x_tr[place], y_tr[place], sample_weight = weight_tr[place])
             model[place] = gbrt
             tr_pred[place] = gbrt.predict(x_tr[place])
