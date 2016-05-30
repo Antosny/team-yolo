@@ -1,0 +1,13 @@
+target/
+*.iml
+.idea/
+gen-java/
+*.swp
+log/
+.DS_Store
+*.pid
+/config/yfd/*.properties
+patch*
+*diff
+*~
+*.pyc

@@ -27,14 +27,14 @@ def load_data(order):
 
 
 def is_test_data(ts):
-    for i in range(0, 2):
-        if util.ts_idx(ts) + i in testset:
+    for i in range(0, 4):
+        if int(ts) + i in testset:
             return True
     return False
 
 def split_data(order, vali = True):
     if vali:
-        order['test'] = order['ts'].apply(is_test_data)
+        order['test'] = order['tsidx'].apply(is_test_data)
         traindata = order[order['test'] == False]
         testdata = order[order['test'] == True]
         traindata.index = traindata[['start_district_hash', 'tsidx']]
@@ -59,39 +59,14 @@ def ts_feature(ts):
     tsstr = '-'.join(tsinfo[:-1]) + '-' + str(tshour) + '-' + str(tsmin)
     dt = datetime.strptime(tsstr, '%Y-%m-%d-%H-%M')
     feature = []
+    week = 0
+    if dt.isoweekday() < 6:
+        week = 1
+    feature.append(week)
     feature.append(dt.isoweekday())
     feature.append(dt.hour)
     feature.append(dt.minute)
     return feature
-
-def transform(data, istrain = True):
-    x = []
-    y = []
-    idx = []
-    weight = []
-    datadict = data.to_dict('index')
-    if istrain:
-        for place, ts in datadict:
-            if place not in place_map:
-                continue
-            if int(ts) <= 576:
-                continue
-            label = float(datadict[(place, ts)]['gap'])
-            y.append(label)
-            x.append(get_feature(place, ts, datadict))
-            idx.append([place, ts])
-            if label == 0:
-                weight.append(0.1)
-            else:
-                weight.append(1./label)
-    else:
-        for place in place_map:
-            for ts in testset:
-                y.append(-1)
-                x.append(get_feature(place, ts, datadict))
-                idx.append([place, ts])
-
-    return x, y, np.array(idx), weight
 
 def transform_per_place(data, istrain = True):
     x = {}
@@ -115,7 +90,7 @@ def transform_per_place(data, istrain = True):
             x[place].append(get_feature(place, ts, datadict))
             idx[place].append([place, ts])
             if label == 0:
-                weight[place].append(0.05)
+                weight[place].append(0.1)
             else:
                 weight[place].append(1./label)
     else:
@@ -137,71 +112,55 @@ def get_feature(place, ts, datadict):
     f += ts_feature(ts)
     #previous gap
     for i in range(1, 2):
-        if i <= 1:
-            if (place, ts - i) in datadict:
-                f.append(datadict[(place, ts - i)]['gap'])
-                f.append(datadict[(place, ts - i)]['call'])
-                f.append(datadict[(place, ts - i)]['answer'])
-            else:
-                f.append(0)
-                f.append(0)
-                f.append(0)
-        else:
-            oldkey = (place, ts - i + 1)
-            crtkey = (place, ts - i)
-            g = 0
-            c = 0
-            a = 0
-            if oldkey in datadict:
-                g += datadict[oldkey]['gap']
-                c += datadict[oldkey]['call']
-                a += datadict[oldkey]['answer']
-            if crtkey in datadict:
-                g -= datadict[crtkey]['gap']
-                c -= datadict[crtkey]['call']
-                a -= datadict[crtkey]['answer']
-            f.append(g)
-            f.append(c)
-            f.append(a)
+        if (place, ts - i) in datadict:
+            f.append(datadict[(place, ts - i)]['gap'])
+            f.append(datadict[(place, ts - i)]['call'])
+            f.append(datadict[(place, ts - i)]['answer'])
+            gapinfo = datadict[(place, ts - i)]['order_min'].split(':')
+            #priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
+            for j in range(0, len(gapinfo)):
+                gap_min = gapinfo[j].split(',')
+                for g in gap_min:
+                    f.append(int(g))
 
+        else:
+            for j in range(0, 33):
+                f.append(0)
                 
     return f
 
 
-def mape(y_true, y_pred, idx, istrain = False):
-    lenplace = len(set(idx[:, 0]))
-    if istrain:
-        divider = lenplace * len(set(idx[:, 1])) * 1.
-    else:
-        divider = lenplace * len(testset) * 1.
-    result_mape = 0.0
-    for i in range(0, len(y_true)):
-        place, ts = idx[i]
-        if not istrain and int(ts) not in testset:
-            continue
-        if y_true[i] > 0:
-            result_mape += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
-    return result_mape / divider
-    
 
 def mape_per_place(y_true, y_pred, idx, istrain = False):
-    lenplace = len(y_true)
+    lenplace = len(y_pred)
     if istrain:
         dateidx = max([len(x) for x in y_true.values()])
         divider = lenplace * dateidx * 1.
     else:
         divider = lenplace * len(testset) * 1.
     result_mape = 0.0
+    cali_mape = 0.0
     print '----mape----'
-    for place in y_true:
+    placem = {}
+    for place in y_pred:
         #print place
+        pmap = 0.0
         for i in range(0, len(y_true[place])):
             #print i
             p, ts = idx[place][i]
             if not istrain and int(ts) not in testset:
                 continue
             if y_true[place][i] > 0:
+                calipred = y_pred[place][i]
+                if calipred > 10:
+                    calipred *= 1.1
                 result_mape += abs((y_true[place][i] - max(1., y_pred[place][i])) / (y_true[place][i] * 1.))
+                pmap += abs((y_true[place][i] - max(1., y_pred[place][i])) / (y_true[place][i] * 1.))
+                cali_mape += abs((y_true[place][i] - max(1., calipred)) / (y_true[place][i] * 1.))
+        placem[place] = pmap / (divider / lenplace)
+    for place in sorted(placem.keys()):
+        print place + ' mape:' + str(placem[place])
+    print 'calibration mape:' + str(cali_mape / divider)
     return result_mape / divider
 
 if __name__ == '__main__':
@@ -237,8 +196,10 @@ if __name__ == '__main__':
         tr_pred = {}
         y_pred = {}
         for place in x_tr:
+            if place != '62afaf3288e236b389af9cfdc5206415':
+                continue
             print place
-            gbrt = GradientBoostingRegressor(loss='lad', max_depth=4)
+            gbrt = GradientBoostingRegressor(loss='lad', max_depth=6)#, n_estimators=400)
             gbrt.fit(x_tr[place], y_tr[place], sample_weight = weight_tr[place])
             model[place] = gbrt
             tr_pred[place] = gbrt.predict(x_tr[place])
@@ -256,19 +217,30 @@ if __name__ == '__main__':
         load_map(sys.argv[5])
         traindata = split_data(load_data(orderpath), False)
         testdata = split_data(load_data(testorderpath), False)
-        x_tr, y_tr, idx_tr, weight_tr = transform(traindata)
+        x_tr, y_tr, idx_tr, weight_tr = transform_per_place(traindata)
         print '---------------'
-        x_te, y_te, idx_te, weight_te = transform(testdata, False)
+        x_te, y_te, idx_te, weight_te = transform_per_place(testdata, False)
         print 'size of training:' + str(len(y_tr))
         print 'size of test:' + str(len(y_te))
-        gbrt.fit(x_tr, y_tr, sample_weight = weight_tr)
-        tr_pred = gbrt.predict(x_tr)
-        y_pred = gbrt.predict(x_te)
+        model = {}
+        tr_pred = {}
+        y_pred = {}
+        for place in x_tr:
+            print place
+            gbrt = GradientBoostingRegressor(loss='lad', max_depth=4)
+            gbrt.fit(x_tr[place], y_tr[place], sample_weight = weight_tr[place])
+            model[place] = gbrt
+            tr_pred[place] = gbrt.predict(x_tr[place])
+            y_pred[place] = gbrt.predict(x_te[place])
+
         w = open(sys.argv[6], 'w')
-        for i in range(0, len(idx_te)):
-            place = str(place_map[idx_te[i][0]])
-            ts = str(util.idx_ts(int(idx_te[i][1])))
-            print place + ' ' + ts
-            w.write(place + ',' + ts + ',' + str(max(y_pred[i], 1.0)) + '\n')
+        for place in y_pred:
+            for i in range(0, len(y_pred[place])):
+                ts = str(util.idx_ts(int(idx_te[place][i][1])))
+                print place + ' ' + ts
+                pre = y_pred[place][i]
+                if pre > 10:
+                    pre *= 1.3
+                w.write(place + ',' + ts + ',' + str(max(pre, 1.0)) + '\n')
         w.close()
-        print 'train mape:' + str(mape(y_tr, tr_pred, idx_tr, True))
+        print 'train mape:' + str(mape_per_place(y_tr, tr_pred, idx_tr, True))

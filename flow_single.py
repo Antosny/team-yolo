@@ -28,7 +28,7 @@ def load_data(order):
 
 
 def is_test_data(ts):
-    for i in range(0, 2):
+    for i in range(0, 4):
         if int(ts) + i in testset:
             return True
     return False
@@ -63,7 +63,7 @@ def ts_feature(ts):
     weekend = 0
     if dt.isoweekday() < 6:
         weekend = 1
-    #feature.append(weekend)
+    feature.append(weekend)
     feature.append(dt.isoweekday())
     feature.append(dt.hour)
     feature.append(dt.minute)
@@ -106,45 +106,23 @@ def get_feature(place, ts, datadict):
     f += ts_feature(ts)
     #previous gap
     for i in range(1, 2):
-        if i == 0:
-            continue
-        if i <= 1:
-            if (place, ts - i) in datadict:
-                f.append(datadict[(place, ts - i)]['gap'])
-                f.append(datadict[(place, ts - i)]['call'])
-                f.append(datadict[(place, ts - i)]['answer'])
-                gapinfo = datadict[(place, ts - i)]['order_min'].split(':')
-                priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
-                for j in range(0, len(gapinfo)):
-                    gap_min = gapinfo[j].split(',')
-                    for g in gap_min:
-                        f.append(int(g))
+        if (place, ts - i) in datadict:
+            f.append(datadict[(place, ts - i)]['gap'])
+            f.append(datadict[(place, ts - i)]['call'])
+            f.append(datadict[(place, ts - i)]['answer'])
+            gapinfo = datadict[(place, ts - i)]['order_min'].split(':')
+            priceinfo = datadict[(place, ts - i)]['price_min'].split(':')
+            for j in range(0, len(gapinfo)):
+                gap_min = gapinfo[j].split(',')
+                for g in gap_min:
+                    f.append(int(g))
                 # for j in range(0, len(priceinfo)):
                 #     price_min = priceinfo[j].split(',')
                 #     for p in price_min:
                 #         f.append(float(g))
-            else:
-                for j in range(0, 33):
-                    f.append(0)
         else:
-            oldkey = (place, ts - i + 1)
-            crtkey = (place, ts - i)
-            g = 0
-            c = 0
-            a = 0
-            if oldkey in datadict:
-                g += datadict[oldkey]['gap']
-                c += datadict[oldkey]['call']
-                a += datadict[oldkey]['answer']
-            if crtkey in datadict:
-                g -= datadict[crtkey]['gap']
-                c -= datadict[crtkey]['call']
-                a -= datadict[crtkey]['answer']
-            f.append(g)
-            f.append(c)
-            f.append(a)
-
-                
+            for j in range(0, 33):
+                f.append(0)
     return f
 
 
@@ -170,7 +148,7 @@ def mape(y_true, y_pred, idx, istrain = False):
             if y_true[i] not in gapmean:
                 gapmean[y_true[i]] = []
             gapmean[y_true[i]].append(y_pred[i])
-            elif cali_pred > 10:
+            if cali_pred > 5:
                 cali_pred *= 1.2
             calibration_mape += abs((y_true[i] - cali_pred) / (y_true[i] * 1.))
             placemape[place] += abs((y_true[i] - y_pred[i]) / (y_true[i] * 1.))
@@ -187,7 +165,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print 'usage: python flow.py vali|test params'
         sys.exit(1)
-    gbrt = GradientBoostingRegressor(loss='lad', max_depth=8)
+    gbrt = GradientBoostingRegressor(loss='lad', max_depth=8, n_estimators=100)
     if sys.argv[1] == 'vali':
         valipath = sys.argv[2]
         orderpath = sys.argv[3]

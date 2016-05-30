@@ -112,6 +112,24 @@ def order_to_ts_min(fromfile, tofile):
     agroup.to_csv(tofile, index=True)
     return agroup
 
+def order_to_ts_min_toplace(fromfile, tofile):
+    a = pd.read_csv(fromfile)
+    a['tsidx'] = a['time'].apply(convert_ts)
+    a['tsidx'] = a['tsidx'].apply(ts_idx)
+    agroup = a.groupby(['dest_district_hash', 'tsidx'])
+    agroup = agroup.agg({'time':comma_join, 'price':comma_join, 'driver_id':comma_join})
+    agroup['info'] = agroup['time'] + '#@#' + agroup['price'] + '#@#' + agroup['driver_id']
+    agroup = agroup.drop('time', 1)
+    agroup = agroup.drop('price', 1)
+    agroup = agroup.drop('driver_id', 1)
+    agroup['answer'] = agroup['info'].apply(lambda x:len([i for i in x.split('#@#')[2].split(',') if i != 'nan']))
+    agroup['call'] = agroup['info'].apply(lambda x:len([i for i in x.split('#@#')[2].split(',')]))
+    agroup['gap'] = agroup['call'] - agroup['answer']
+    agroup['order_min'] = agroup['info'].apply(order_min)
+    agroup['price_min'] = agroup['info'].apply(price_min)
+    agroup.to_csv(tofile, index=True)
+    return agroup
+
 
 
 
@@ -179,5 +197,7 @@ if __name__ == '__main__':
         order_to_ts(sys.argv[2], sys.argv[3])
     if sys.argv[1] == 'ordermin':
         order_to_ts_min(sys.argv[2], sys.argv[3])
+    if sys.argv[1] == 'orderminto':
+        order_to_ts_min_toplace(sys.argv[2], sys.argv[3])
     else:
         print 'usage: python util.py header|order frompath topath'
