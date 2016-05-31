@@ -224,7 +224,7 @@ if __name__ == '__main__':
             #if place != '62afaf3288e236b389af9cfdc5206415':
             #    continue
             print place
-            gbrt = GradientBoostingRegressor(loss='lad', max_depth=6, n_estimators=200)
+            gbrt = GradientBoostingRegressor(loss='lad', max_depth=4, n_estimators=100)
             gbrt.fit(x_tr[place], y_tr[place], sample_weight = weight_tr[place])
             model[place] = gbrt
             tr_pred[place] = gbrt.predict(x_tr[place])
